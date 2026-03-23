@@ -23,4 +23,7 @@ app.UseSwaggerUI();
 // ✅ Map controllers
 app.MapControllers();
 
+// 🔥 ADD THIS (NEW LINE)
+app.MapGet("/", () => "API is running 🚀");
+
 app.Run();

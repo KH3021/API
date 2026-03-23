@@ -10,8 +10,14 @@ public class MongoService
 
     public MongoService(IConfiguration config)
     {
-        // ✅ Get connection string from appsettings.json
-        var connection = config["MongoDB:ConnectionString"];
+        // 🔥 FIX: Support BOTH local + Railway
+        var connection = config["MongoDB:ConnectionString"]
+                      ?? Environment.GetEnvironmentVariable("MONGO_CONNECTION");
+
+        if (string.IsNullOrEmpty(connection))
+        {
+            throw new Exception("MongoDB connection string is missing ❌");
+        }
 
         var client = new MongoClient(connection);
         var database = client.GetDatabase("AuthDB");
@@ -24,7 +30,7 @@ public class MongoService
         await _users.InsertOneAsync(user);
     }
 
-    // ✅ Get user for login
+    // ❌ (not used anymore if hashing)
     public async Task<User?> GetUser(string email, string password)
     {
         return await _users
@@ -32,6 +38,7 @@ public class MongoService
             .FirstOrDefaultAsync();
     }
 
+    // ✅ Get by email (used for login)
     public async Task<User?> GetUserByEmail(string email)
     {
         return await _users

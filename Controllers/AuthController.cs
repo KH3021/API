@@ -18,37 +18,37 @@ public class AuthController : ControllerBase
 
     // ✅ REGISTER
 
-[HttpPost("register")]
-public async Task<IActionResult> Register(User user)
-{
-    if (string.IsNullOrEmpty(user.FullName) ||
-        string.IsNullOrEmpty(user.Email) ||
-        string.IsNullOrEmpty(user.Password))
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(User user)
     {
-        return BadRequest("All fields required");
+        if (string.IsNullOrEmpty(user.FullName) ||
+            string.IsNullOrEmpty(user.Email) ||
+            string.IsNullOrEmpty(user.Password))
+        {
+            return BadRequest("All fields required");
+        }
+
+        // ✅ Check if user already exists
+        var existingUser = await _mongo.GetUserByEmail(user.Email);
+
+        if (existingUser != null)
+        {
+            return BadRequest("User already exists ❌");
+        }
+
+        // 🔐 HASH PASSWORD
+        user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+
+        await _mongo.CreateUser(user);
+
+        return Ok(new
+        {
+            message = "User registered successfully",
+            user.Email,
+            user.FullName,
+            user.Role
+        });
     }
-
-    // ✅ Check if user already exists
-    var existingUser = await _mongo.GetUserByEmail(user.Email);
-
-    if (existingUser != null)
-    {
-        return BadRequest("User already exists ❌");
-    }
-
-    // 🔐 HASH PASSWORD
-    user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-
-    await _mongo.CreateUser(user);
-
-    return Ok(new
-    {
-        message = "User registered successfully",
-        user.Email,
-        user.FullName,
-        user.Role
-    });
-}
 
     // ✅ LOGIN
     [HttpPost("login")]
@@ -71,6 +71,24 @@ public async Task<IActionResult> Register(User user)
             user.Email,
             user.FullName,
             user.Role
+        });
+    }
+
+    // Testing user data comes or not
+    [HttpGet("user/{email}")]
+    public async Task<IActionResult> GetUser(string email)
+    {
+        var user = await _mongo.GetUserByEmail(email);
+
+        if (user == null)
+            return NotFound();
+
+        return Ok(new
+        {
+            user.FullName,
+            user.Email,
+            user.Role,
+            user.CreatedDate
         });
     }
 }

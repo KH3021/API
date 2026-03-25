@@ -9,8 +9,9 @@ public class User
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 
+    // 🔥 CUSTOM USER ID (U001, U002...)
     [BsonElement("userid")]
-    public string UserId { get; set; } = Guid.NewGuid().ToString();
+    public string? UserId { get; set; }
 
     [BsonElement("fullname")]
     public string FullName { get; set; }

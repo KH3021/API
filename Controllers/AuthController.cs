@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using API.Models;
 using API.Services;
-using BCrypt.Net;
 
 namespace API.Controllers;
 
@@ -16,7 +15,7 @@ public class AuthController : ControllerBase
         _mongo = mongo;
     }
 
-    // ✅ REGISTER
+    // ================= REGISTER =================
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(User user)
@@ -28,13 +27,15 @@ public class AuthController : ControllerBase
             return BadRequest("All fields required");
         }
 
-        // ✅ Check if user already exists
         var existingUser = await _mongo.GetUserByEmail(user.Email);
 
         if (existingUser != null)
         {
             return BadRequest("User already exists ❌");
         }
+
+        // 🔥 AUTO GENERATE USER ID
+        user.UserId = await _mongo.GenerateUserId();
 
         // 🔐 HASH PASSWORD
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
@@ -44,13 +45,15 @@ public class AuthController : ControllerBase
         return Ok(new
         {
             message = "User registered successfully",
+            user.UserId,
             user.Email,
             user.FullName,
             user.Role
         });
     }
 
-    // ✅ LOGIN
+    // ================= LOGIN =================
+
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginModel model)
     {
@@ -59,7 +62,6 @@ public class AuthController : ControllerBase
         if (user == null)
             return Unauthorized("Invalid email or password");
 
-        // 🔐 VERIFY HASHED PASSWORD
         bool isValid = BCrypt.Net.BCrypt.Verify(model.Password, user.Password);
 
         if (!isValid)
@@ -68,13 +70,15 @@ public class AuthController : ControllerBase
         return Ok(new
         {
             message = "Login successful",
+            user.UserId,
             user.Email,
             user.FullName,
             user.Role
         });
     }
 
-    // Testing user data comes or not
+    // ================= GET USER =================
+
     [HttpGet("user/{email}")]
     public async Task<IActionResult> GetUser(string email)
     {
@@ -85,6 +89,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
+            user.UserId,
             user.FullName,
             user.Email,
             user.Role,

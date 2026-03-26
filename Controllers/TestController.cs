@@ -26,15 +26,19 @@ public class TestController : ControllerBase
     {
         var apiKey = _config["Groq:ApiKey"];
 
-        // 🔥 UPDATED PROMPT (STRICT JSON)
-        var prompt = $"Generate 5 UNIQUE {level} level MCQ questions for {skill}. " +
-             $"This is question set number {set}. Do NOT repeat questions from other sets. " +
-             $"Each set must be different. " +
-             $"Each question MUST have exactly 4 options only. Not more, not less. " +
-             $"Include code-based questions. " +
-             $"Return ONLY valid JSON array. No explanation, no markdown. " +
-             $"Format strictly: " +
-             $"[{{\"questionText\":\"\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}}]";
+        var prompt = $@"
+Generate 5 MCQ questions for {skill} at {level} level.
+
+Return ONLY JSON array:
+[
+  {{
+    ""questionText"": ""Question"",
+    ""options"": [""Option1"", ""Option2"", ""Option3"", ""Option4""],
+    ""answer"": ""Exact option text""
+  }}
+]
+";
+
         var requestBody = new
         {
             model = "llama-3.1-8b-instant",
@@ -61,71 +65,31 @@ public class TestController : ControllerBase
             .GetProperty("content")
             .GetString();
 
-        // 🔥 CLEAN RESPONSE (STRONG VERSION)
-        content = content.Trim()
-                         .Replace("```json", "")
-                         .Replace("```", "")
-                         .Replace("\\n", " ")
-                         .Replace("\\\"", "\"");
+        // ================= SAFE PARSING =================
 
-        // 🔥 REMOVE INVALID ESCAPE CHARACTERS (KEY FIX)
-        content = System.Text.RegularExpressions.Regex.Replace(content, @"\\(?![""\\/bfnrtu])", "");
-
-        // 🔥 REMOVE BAD SINGLE QUOTES
-        content = content.Replace("\\'", "'");
-
-        // 🔥 Extract JSON array safely
-        int start = content.IndexOf('[');
-        int end = content.LastIndexOf(']');
-
-        if (start != -1 && end != -1)
-        {
-            content = content.Substring(start, end - start + 1);
-        }
-
-        // 🔥 FIX BROKEN JSON STRUCTURE
-        content = content.Replace("}{", "},{");
-
-        // 🔥 REMOVE TRAILING GARBAGE
-        content = content.TrimEnd(',', ';');
-
-        // 🔥 TRY PARSING
         try
         {
-            List<Question> questions;
+            int start = content.IndexOf('[');
+            int end = content.LastIndexOf(']');
 
-            // Case 1: Wrapped JSON string
-            if (content.StartsWith("\""))
+            if (start == -1 || end == -1)
             {
-                content = JsonSerializer.Deserialize<string>(content);
-            }
-
-            // Case 2: Fix broken separators
-            content = content.Replace("}{", "},{");
-
-            // 🔥 Parse into JsonDocument first (SAFE MODE)
-            using var jsonDoc = JsonDocument.Parse(content);
-
-            var list = new List<Question>();
-
-            foreach (var item in jsonDoc.RootElement.EnumerateArray())
-            {
-                var options = item.GetProperty("options")
-                                  .EnumerateArray()
-                                  .Select(x => x.GetString())
-                                  .Where(x => !string.IsNullOrEmpty(x))
-                                  .Take(4) // 🔥 LIMIT TO 4 OPTIONS (KEY FIX)
-                                  .ToList();
-
-                list.Add(new Question
+                return Ok(new
                 {
-                    QuestionText = item.GetProperty("questionText").GetString(),
-                    Options = options,
-                    Answer = item.GetProperty("answer").GetString()
+                    error = "Invalid JSON format",
+                    raw = content
                 });
             }
 
-            return Ok(list);
+            var jsonClean = content.Substring(start, end - start + 1);
+
+            var questions = JsonSerializer.Deserialize<List<Question>>(jsonClean,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+            return Ok(questions);
         }
         catch (Exception ex)
         {
@@ -143,7 +107,6 @@ public class TestController : ControllerBase
     [HttpPost("submit")]
     public async Task<IActionResult> SubmitTest([FromBody] SubmitRequest request)
     {
-        // 🔥 Validate user
         var user = await _mongo.GetUserByCustomId(request.UserId);
 
         if (user == null)
@@ -154,7 +117,7 @@ public class TestController : ControllerBase
 
         foreach (var q in request.Answers)
         {
-            if (q.SelectedAnswer == q.CorrectAnswer)
+            if (q.SelectedAnswer.Trim().Equals(q.CorrectAnswer.Trim(), StringComparison.OrdinalIgnoreCase))
                 score++;
         }
 

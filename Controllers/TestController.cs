@@ -77,8 +77,22 @@ public class TestController : ControllerBase
 
         try
         {
-            var questions = JsonSerializer.Deserialize<List<Question>>(content,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            List<Question> questions;
+
+            // 🔥 First attempt (normal JSON)
+            try
+            {
+                questions = JsonSerializer.Deserialize<List<Question>>(content,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                // 🔥 If failed → it is STRING JSON → deserialize twice
+                var innerJson = JsonSerializer.Deserialize<string>(content);
+
+                questions = JsonSerializer.Deserialize<List<Question>>(innerJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
 
             return Ok(questions);
         }

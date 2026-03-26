@@ -12,8 +12,9 @@ public class Result
     [BsonElement("userid")]   // 🔥 MATCH Users.userid
     public string UserId { get; set; }
 
-    [BsonElement("skillname")]
-    public string SkillName { get; set; }
+    // 🔥 REPLACED SkillName → SkillId
+    [BsonElement("skillid")]
+    public string SkillId { get; set; }
 
     [BsonElement("level")]
     public string Level { get; set; }

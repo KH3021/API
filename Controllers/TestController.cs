@@ -130,7 +130,7 @@ Return ONLY JSON array:
         var result = new Result
         {
             UserId = request.UserId,
-            SkillName = request.SkillName,
+            SkillId = request.SkillId,
             Level = request.Level,
             Score = score,
             Total = total,

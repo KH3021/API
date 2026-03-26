@@ -10,6 +10,12 @@ builder.Services.AddSwaggerGen();
 // ✅ Mongo service
 builder.Services.AddSingleton<MongoService>();
 
+// ✅ Roadmap service
+builder.Services.AddScoped<RoadmapService>();
+
+// ✅ Progress service
+builder.Services.AddScoped<ProgressService>();
+
 var app = builder.Build();
 
 // ✅ IMPORTANT: Bind port BEFORE running

@@ -63,10 +63,11 @@ public class TestController : ControllerBase
 
         // 🔥 CLEAN JSON (IMPROVED)
         content = content.Trim()
-                         .Replace("```json", "")
-                         .Replace("```", "")
-                         .Replace("\\n", "")
-                         .Replace("\\\"", "\"");
+                 .Replace("```json", "")
+                 .Replace("```", "")
+                 .Replace("\\n", "")
+                 .Replace("\\\"", "\"")
+                 .Trim('"'); // 🔥 VERY IMPORTANT
 
         // 🔥 Extract only JSON array
         int start = content.IndexOf('[');
@@ -81,20 +82,14 @@ public class TestController : ControllerBase
         {
             List<Question> questions;
 
-            // 🔥 First attempt (normal JSON)
-            try
+            // 🔥 If response is STRING JSON → unwrap it
+            if (content.StartsWith("\""))
             {
-                questions = JsonSerializer.Deserialize<List<Question>>(content,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                content = JsonSerializer.Deserialize<string>(content);
             }
-            catch
-            {
-                // 🔥 If failed → it is STRING JSON → deserialize twice
-                var innerJson = JsonSerializer.Deserialize<string>(content);
 
-                questions = JsonSerializer.Deserialize<List<Question>>(innerJson,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
+            questions = JsonSerializer.Deserialize<List<Question>>(content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             return Ok(questions);
         }
@@ -106,7 +101,7 @@ public class TestController : ControllerBase
                 message = ex.Message,
                 raw = content
             });
-        }
+        } 
     }
 
     // ================= SUBMIT TEST =================

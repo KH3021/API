@@ -27,11 +27,13 @@ public class TestController : ControllerBase
         var apiKey = _config["Groq:ApiKey"];
 
         // 🔥 UPDATED PROMPT (STRICT JSON)
-        var prompt = $"Generate 5 {level} level MCQ questions for {skill}. " +
-                     $"Include code-based questions. " +
-                     $"Return ONLY valid JSON array. No explanation, no markdown. " +
-                     $"Format strictly: " +
-                     $"[{{\"questionText\":\"\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}}]";
+        var prompt = $"Generate 5 UNIQUE {level} level MCQ questions for {skill}. " +
+             $"This is question set number {set}. Do NOT repeat questions from other sets. " +
+             $"Each set must be different. " +
+             $"Include code-based questions. " +
+             $"Return ONLY valid JSON array. No explanation, no markdown. " +
+             $"Format strictly: " +
+             $"[{{\"questionText\":\"\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}}]";
 
         var requestBody = new
         {

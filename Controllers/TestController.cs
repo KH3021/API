@@ -30,11 +30,11 @@ public class TestController : ControllerBase
         var prompt = $"Generate 5 UNIQUE {level} level MCQ questions for {skill}. " +
              $"This is question set number {set}. Do NOT repeat questions from other sets. " +
              $"Each set must be different. " +
+             $"Each question MUST have exactly 4 options only. Not more, not less. " +
              $"Include code-based questions. " +
              $"Return ONLY valid JSON array. No explanation, no markdown. " +
              $"Format strictly: " +
              $"[{{\"questionText\":\"\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}}]";
-
         var requestBody = new
         {
             model = "llama-3.1-8b-instant",
@@ -92,13 +92,32 @@ public class TestController : ControllerBase
                 content = JsonSerializer.Deserialize<string>(content);
             }
 
-            // Case 2: Fix broken separators (common AI bug)
+            // Case 2: Fix broken separators
             content = content.Replace("}{", "},{");
 
-            questions = JsonSerializer.Deserialize<List<Question>>(content,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            // 🔥 Parse into JsonDocument first (SAFE MODE)
+            using var jsonDoc = JsonDocument.Parse(content);
 
-            return Ok(questions);
+            var list = new List<Question>();
+
+            foreach (var item in jsonDoc.RootElement.EnumerateArray())
+            {
+                var options = item.GetProperty("options")
+                                  .EnumerateArray()
+                                  .Select(x => x.GetString())
+                                  .Where(x => !string.IsNullOrEmpty(x))
+                                  .Take(4) // 🔥 LIMIT TO 4 OPTIONS (KEY FIX)
+                                  .ToList();
+
+                list.Add(new Question
+                {
+                    QuestionText = item.GetProperty("questionText").GetString(),
+                    Options = options,
+                    Answer = item.GetProperty("answer").GetString()
+                });
+            }
+
+            return Ok(list);
         }
         catch (Exception ex)
         {

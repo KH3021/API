@@ -61,15 +61,15 @@ public class TestController : ControllerBase
             .GetProperty("content")
             .GetString();
 
-        // 🔥 CLEAN JSON (IMPROVED)
+        // 🔥 CLEAN RESPONSE
         content = content.Trim()
-                 .Replace("```json", "")
-                 .Replace("```", "")
-                 .Replace("\\n", "")
-                 .Replace("\\\"", "\"")
-                 .Trim('"'); // 🔥 VERY IMPORTANT
+                         .Replace("```json", "")
+                         .Replace("```", "")
+                         .Replace("\\n", "")
+                         .Replace("\\\"", "\"")
+                         .Trim();
 
-        // 🔥 Extract only JSON array
+        // 🔥 Extract JSON array safely
         int start = content.IndexOf('[');
         int end = content.LastIndexOf(']');
 
@@ -78,15 +78,22 @@ public class TestController : ControllerBase
             content = content.Substring(start, end - start + 1);
         }
 
+        // 🔥 REMOVE trailing garbage (VERY IMPORTANT)
+        content = content.TrimEnd(',', ';');
+
+        // 🔥 TRY PARSING
         try
         {
             List<Question> questions;
 
-            // 🔥 If response is STRING JSON → unwrap it
+            // Case 1: Wrapped JSON string
             if (content.StartsWith("\""))
             {
                 content = JsonSerializer.Deserialize<string>(content);
             }
+
+            // Case 2: Fix broken separators (common AI bug)
+            content = content.Replace("}{", "},{");
 
             questions = JsonSerializer.Deserialize<List<Question>>(content,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -101,7 +108,7 @@ public class TestController : ControllerBase
                 message = ex.Message,
                 raw = content
             });
-        } 
+        }
     }
 
     // ================= SUBMIT TEST =================

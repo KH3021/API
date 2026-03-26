@@ -27,7 +27,7 @@ public class TestController : ControllerBase
         var apiKey = _config["Groq:ApiKey"];
 
         var prompt = $@"
-Generate 5 MCQ questions for {skill} at {level} level.
+Generate 10 MCQ questions for {skill} at {level} level.
 
 Return ONLY JSON array:
 [

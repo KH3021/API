@@ -105,4 +105,45 @@ public class MongoService
             .SortByDescending(r => r.Date)
             .ToListAsync();
     }
+
+    // ================= EXTRA USER METHODS =================
+
+    // Get all users
+    public async Task<List<User>> GetAllUsers()
+    {
+        return await _users.Find(_ => true).ToListAsync();
+    }
+
+    // Delete user
+    public async Task<bool> DeleteUser(string userId)
+    {
+        var result = await _users.DeleteOneAsync(u => u.UserId == userId);
+        return result.DeletedCount > 0;
+    }
+
+    // ================= SAFE UPDATE USER (ADMIN FRIENDLY) =================
+
+    public async Task<bool> UpdateUserSafe(string userId, UpdateUserDto dto)
+    {
+        var existingUser = await _users
+            .Find(u => u.UserId == userId)
+            .FirstOrDefaultAsync();
+
+        if (existingUser == null)
+            return false;
+
+        // ✅ Only update required fields
+        existingUser.FullName = dto.FullName;
+        existingUser.Email = dto.Email;
+
+        // 🔐 Update password only if provided
+        if (!string.IsNullOrEmpty(dto.Password))
+        {
+            existingUser.Password = dto.Password;
+        }
+
+        await _users.ReplaceOneAsync(u => u.UserId == userId, existingUser);
+
+        return true;
+    }
 }

@@ -61,13 +61,18 @@ public class TestController : ControllerBase
             .GetProperty("content")
             .GetString();
 
-        // 🔥 CLEAN RESPONSE
+        // 🔥 CLEAN RESPONSE (STRONG VERSION)
         content = content.Trim()
                          .Replace("```json", "")
                          .Replace("```", "")
-                         .Replace("\\n", "")
-                         .Replace("\\\"", "\"")
-                         .Trim();
+                         .Replace("\\n", " ")
+                         .Replace("\\\"", "\"");
+
+        // 🔥 REMOVE INVALID ESCAPE CHARACTERS (KEY FIX)
+        content = System.Text.RegularExpressions.Regex.Replace(content, @"\\(?![""\\/bfnrtu])", "");
+
+        // 🔥 REMOVE BAD SINGLE QUOTES
+        content = content.Replace("\\'", "'");
 
         // 🔥 Extract JSON array safely
         int start = content.IndexOf('[');
@@ -78,7 +83,10 @@ public class TestController : ControllerBase
             content = content.Substring(start, end - start + 1);
         }
 
-        // 🔥 REMOVE trailing garbage (VERY IMPORTANT)
+        // 🔥 FIX BROKEN JSON STRUCTURE
+        content = content.Replace("}{", "},{");
+
+        // 🔥 REMOVE TRAILING GARBAGE
         content = content.TrimEnd(',', ';');
 
         // 🔥 TRY PARSING

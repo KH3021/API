@@ -23,7 +23,7 @@ public class MongoService
         var client = new MongoClient(connection);
         var database = client.GetDatabase("AuthDB");
 
-        // 🔥 EXACT COLLECTION NAMES
+        // 🔥 COLLECTIONS
         _users = database.GetCollection<User>("Users");
         _skills = database.GetCollection<Skill>("Skills");
         _results = database.GetCollection<Result>("Results");
@@ -43,9 +43,7 @@ public class MongoService
             return "U001";
 
         int numberPart = int.Parse(lastUser.UserId.Substring(1));
-        int newNumber = numberPart + 1;
-
-        return $"U{newNumber:D3}";
+        return $"U{numberPart + 1:D3}";
     }
 
     // ================= USERS =================
@@ -57,16 +55,46 @@ public class MongoService
 
     public async Task<User?> GetUserByEmail(string email)
     {
-        return await _users
-            .Find(u => u.Email == email)
-            .FirstOrDefaultAsync();
+        return await _users.Find(u => u.Email == email).FirstOrDefaultAsync();
     }
 
     public async Task<User?> GetUserByCustomId(string userId)
     {
-        return await _users
+        return await _users.Find(u => u.UserId == userId).FirstOrDefaultAsync();
+    }
+
+    public async Task<List<User>> GetAllUsers()
+    {
+        return await _users.Find(_ => true).ToListAsync();
+    }
+
+    public async Task<bool> DeleteUser(string userId)
+    {
+        var result = await _users.DeleteOneAsync(u => u.UserId == userId);
+        return result.DeletedCount > 0;
+    }
+
+    // 🔥 SAFE UPDATE (ADMIN FRIENDLY)
+    public async Task<bool> UpdateUserSafe(string userId, UpdateUserDto dto)
+    {
+        var existingUser = await _users
             .Find(u => u.UserId == userId)
             .FirstOrDefaultAsync();
+
+        if (existingUser == null)
+            return false;
+
+        existingUser.FullName = dto.FullName;
+        existingUser.Email = dto.Email;
+
+        if (!string.IsNullOrEmpty(dto.Password))
+        {
+            existingUser.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        }
+
+        await _users.ReplaceOneAsync(u => u.UserId == userId, existingUser);
+
+        return true;
     }
 
     // ================= SKILLS =================
@@ -83,9 +111,7 @@ public class MongoService
 
     public async Task<Skill?> GetSkillById(string skillId)
     {
-        return await _skills
-            .Find(s => s.SkillId == skillId)
-            .FirstOrDefaultAsync();
+        return await _skills.Find(s => s.SkillId == skillId).FirstOrDefaultAsync();
     }
 
     public async Task DeleteSkill(string skillId)
@@ -108,53 +134,18 @@ public class MongoService
             .ToListAsync();
     }
 
-    // ================= EXTRA USER METHODS =================
-
-    // Get all users
-    public async Task<List<User>> GetAllUsers()
+    // 🔥 OPTIONAL (for future optimization)
+    public async Task<List<Result>> GetResultsByUserAndSkill(string userId, string skillId)
     {
-        return await _users.Find(_ => true).ToListAsync();
-    }
-
-    // Delete user
-    public async Task<bool> DeleteUser(string userId)
-    {
-        var result = await _users.DeleteOneAsync(u => u.UserId == userId);
-        return result.DeletedCount > 0;
-    }
-
-    // ================= SAFE UPDATE USER (ADMIN FRIENDLY) =================
-
-    public async Task<bool> UpdateUserSafe(string userId, UpdateUserDto dto)
-    {
-        var existingUser = await _users
-            .Find(u => u.UserId == userId)
-            .FirstOrDefaultAsync();
-
-        if (existingUser == null)
-            return false;
-
-        // ✅ Only update required fields
-        existingUser.FullName = dto.FullName;
-        existingUser.Email = dto.Email;
-
-        if (!string.IsNullOrEmpty(dto.Password))
-        {
-            // 🔥 Always hash before saving
-            existingUser.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-        }
-
-        await _users.ReplaceOneAsync(u => u.UserId == userId, existingUser);
-
-        return true;
+        return await _results
+            .Find(r => r.UserId == userId && r.SkillId == skillId)
+            .ToListAsync();
     }
 
     // ================= USER SKILLS =================
 
-    // Add skill (no duplicate)
     public async Task<string> AddUserSkill(UserSkill userSkill)
     {
-        // 🔥 Check duplicate
         var exists = await _userSkills
             .Find(x => x.UserId == userSkill.UserId && x.SkillId == userSkill.SkillId)
             .FirstOrDefaultAsync();
@@ -166,7 +157,6 @@ public class MongoService
         return "Skill added";
     }
 
-    // Get user skills
     public async Task<List<UserSkill>> GetUserSkills(string userId)
     {
         return await _userSkills
@@ -174,7 +164,6 @@ public class MongoService
             .ToListAsync();
     }
 
-    // Delete skill
     public async Task<bool> DeleteUserSkill(string userId, string skillId)
     {
         var result = await _userSkills

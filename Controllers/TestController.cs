@@ -26,10 +26,12 @@ public class TestController : ControllerBase
     {
         var apiKey = _config["Groq:ApiKey"];
 
+        // 🔥 UPDATED PROMPT (STRICT JSON)
         var prompt = $"Generate 5 {level} level MCQ questions for {skill}. " +
                      $"Include code-based questions. " +
-                     $"Return ONLY JSON array. Format: " +
-                     $"[{{\"questionText\":\"\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"\"}}]";
+                     $"Return ONLY valid JSON array. No explanation, no markdown. " +
+                     $"Format strictly: " +
+                     $"[{{\"questionText\":\"\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":\"A\"}}]";
 
         var requestBody = new
         {
@@ -57,11 +59,14 @@ public class TestController : ControllerBase
             .GetProperty("content")
             .GetString();
 
-        // 🔥 CLEAN JSON
+        // 🔥 CLEAN JSON (IMPROVED)
         content = content.Trim()
                          .Replace("```json", "")
-                         .Replace("```", "");
+                         .Replace("```", "")
+                         .Replace("\\n", "")
+                         .Replace("\\\"", "\"");
 
+        // 🔥 Extract only JSON array
         int start = content.IndexOf('[');
         int end = content.LastIndexOf(']');
 
@@ -77,9 +82,14 @@ public class TestController : ControllerBase
 
             return Ok(questions);
         }
-        catch
+        catch (Exception ex)
         {
-            return Ok(new { error = "Parsing failed", raw = content });
+            return Ok(new
+            {
+                error = "Parsing failed",
+                message = ex.Message,
+                raw = content
+            });
         }
     }
 
@@ -111,7 +121,7 @@ public class TestController : ControllerBase
 
         var result = new Result
         {
-            UserId = request.UserId, // 🔥 U001
+            UserId = request.UserId,
             SkillName = request.SkillName,
             Level = request.Level,
             Score = score,

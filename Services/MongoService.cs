@@ -136,10 +136,10 @@ public class MongoService
         existingUser.FullName = dto.FullName;
         existingUser.Email = dto.Email;
 
-        // 🔐 Update password only if provided
         if (!string.IsNullOrEmpty(dto.Password))
         {
-            existingUser.Password = dto.Password;
+            // 🔥 Always hash before saving
+            existingUser.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
         }
 
         await _users.ReplaceOneAsync(u => u.UserId == userId, existingUser);

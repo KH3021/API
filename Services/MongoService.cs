@@ -8,6 +8,7 @@ public class MongoService
     private readonly IMongoCollection<User> _users;
     private readonly IMongoCollection<Skill> _skills;
     private readonly IMongoCollection<Result> _results;
+    private readonly IMongoCollection<UserSkill> _userSkills;
 
     public MongoService(IConfiguration config)
     {
@@ -26,6 +27,7 @@ public class MongoService
         _users = database.GetCollection<User>("Users");
         _skills = database.GetCollection<Skill>("Skills");
         _results = database.GetCollection<Result>("Results");
+        _userSkills = database.GetCollection<UserSkill>("UserSkills");
     }
 
     // ================= USER ID GENERATOR =================
@@ -145,5 +147,39 @@ public class MongoService
         await _users.ReplaceOneAsync(u => u.UserId == userId, existingUser);
 
         return true;
+    }
+
+    // ================= USER SKILLS =================
+
+    // Add skill (no duplicate)
+    public async Task<string> AddUserSkill(UserSkill userSkill)
+    {
+        // 🔥 Check duplicate
+        var exists = await _userSkills
+            .Find(x => x.UserId == userSkill.UserId && x.SkillId == userSkill.SkillId)
+            .FirstOrDefaultAsync();
+
+        if (exists != null)
+            return "Skill already added";
+
+        await _userSkills.InsertOneAsync(userSkill);
+        return "Skill added";
+    }
+
+    // Get user skills
+    public async Task<List<UserSkill>> GetUserSkills(string userId)
+    {
+        return await _userSkills
+            .Find(x => x.UserId == userId)
+            .ToListAsync();
+    }
+
+    // Delete skill
+    public async Task<bool> DeleteUserSkill(string userId, string skillId)
+    {
+        var result = await _userSkills
+            .DeleteOneAsync(x => x.UserId == userId && x.SkillId == skillId);
+
+        return result.DeletedCount > 0;
     }
 }

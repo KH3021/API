@@ -15,9 +15,6 @@ public class UserSkill
     [BsonElement("skillid")]
     public string SkillId { get; set; }
 
-    [BsonElement("skillname")]
-    public string SkillName { get; set; }
-
     [BsonElement("level")]
     public string Level { get; set; } = "Beginner";
 }

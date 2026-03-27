@@ -21,15 +21,30 @@ public class TestController : ControllerBase
 
     // ================= GENERATE TEST =================
 
-    [HttpGet("generate/{skill}/{level}/{set}")]
-    public async Task<IActionResult> GenerateTest(string skill, string level, int set)
+    [HttpGet("generate/{skillId}/{level}/{set}")]
+    public async Task<IActionResult> GenerateTest(string skillId, string level, int set)
     {
+        // 🔥 GET SKILL NAME FROM DB
+        var skill = await _mongo.GetSkillById(skillId);
+
+        if (skill == null)
+            return BadRequest("Skill not found");
+
+        var skillName = skill.SkillName;
+
         var apiKey = _config["Groq:ApiKey"];
 
+        // 🔥 IMPROVED PROMPT (NO MIXED QUESTIONS)
         var prompt = $@"
-Generate 10 MCQ questions for {skill} at {level} level.
+Generate exactly 10 multiple choice questions for {skillName} at {level} level.
 
-Return ONLY JSON array:
+IMPORTANT RULES:
+- Only include questions strictly related to {skillName}
+- Do NOT include any other technology
+- Each question must have 4 options
+- Provide correct answer exactly matching one option
+
+Return ONLY JSON array in this format:
 [
   {{
     ""questionText"": ""Question"",
@@ -121,7 +136,7 @@ Return ONLY JSON array:
                 score++;
         }
 
-        double percentage = (double)score / total * 100;
+        double percentage = total > 0 ? (double)score / total * 100 : 0;
 
         string resultText = percentage < 40 ? "Fail"
                             : percentage < 75 ? "Average"
@@ -135,7 +150,8 @@ Return ONLY JSON array:
             Score = score,
             Total = total,
             Percentage = percentage,
-            ResultText = resultText
+            ResultText = resultText,
+            Date = DateTime.UtcNow // 🔥 IMPORTANT
         };
 
         await _mongo.SaveResult(result);

@@ -16,7 +16,7 @@ public class RoadmapController : ControllerBase
     }
 
     [HttpGet("generate")]
-    public async Task<IActionResult> Generate(string userId, string skillId, string level)
+    public async Task<IActionResult> Generate(string userId, string skillId)
     {
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(skillId))
             return BadRequest("UserId and SkillId required");

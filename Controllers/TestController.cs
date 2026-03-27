@@ -36,23 +36,23 @@ public class TestController : ControllerBase
 
         // 🔥 IMPROVED PROMPT (NO MIXED QUESTIONS)
         var prompt = $@"
-Generate exactly 10 multiple choice questions for {skillName} at {level} level.
+                        Generate exactly 10 multiple choice questions for {skillName} at {level} level.
 
-IMPORTANT RULES:
-- Only include questions strictly related to {skillName}
-- Do NOT include any other technology
-- Each question must have 4 options
-- Provide correct answer exactly matching one option
+                        IMPORTANT RULES:
+                        - Only include questions strictly related to {skillName}
+                        - Do NOT include any other technology
+                        - Each question must have 4 options
+                        - Provide correct answer exactly matching one option
 
-Return ONLY JSON array in this format:
-[
-  {{
-    ""questionText"": ""Question"",
-    ""options"": [""Option1"", ""Option2"", ""Option3"", ""Option4""],
-    ""answer"": ""Exact option text""
-  }}
-]
-";
+                        Return ONLY JSON array in this format:
+                        [
+                          {{
+                            ""questionText"": ""Question"",
+                            ""options"": [""Option1"", ""Option2"", ""Option3"", ""Option4""],
+                            ""answer"": ""Exact option text""
+                          }}
+                        ]
+                        ";
 
         var requestBody = new
         {
@@ -151,7 +151,10 @@ Return ONLY JSON array in this format:
             Total = total,
             Percentage = percentage,
             ResultText = resultText,
-            Date = DateTime.UtcNow // 🔥 IMPORTANT
+            Date = DateTime.UtcNow,
+
+            // 🔥 ADD THIS LINE
+            Answers = request.Answers
         };
 
         await _mongo.SaveResult(result);

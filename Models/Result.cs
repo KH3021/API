@@ -9,10 +9,9 @@ public class Result
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 
-    [BsonElement("userid")]   // 🔥 MATCH Users.userid
+    [BsonElement("userid")]
     public string UserId { get; set; }
 
-    // 🔥 REPLACED SkillName → SkillId
     [BsonElement("skillid")]
     public string SkillId { get; set; }
 
@@ -33,4 +32,8 @@ public class Result
 
     [BsonElement("date")]
     public DateTime Date { get; set; } = DateTime.UtcNow;
+
+    // 🔥 IMPORTANT: STORE USER ANSWERS
+    [BsonElement("answers")]
+    public List<AnswerModel> Answers { get; set; } = new();
 }

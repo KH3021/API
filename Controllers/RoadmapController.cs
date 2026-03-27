@@ -21,7 +21,7 @@ public class RoadmapController : ControllerBase
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(skillId))
             return BadRequest("UserId and SkillId required");
 
-        var roadmap = await _service.GenerateRoadmap(userId, skillId, level);
+        var roadmap = await _service.GenerateRoadmap(userId, skillId);
 
         if (roadmap == null)
             return NotFound("Skill not found");

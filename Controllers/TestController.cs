@@ -176,24 +176,7 @@ public class TestController : ControllerBase
     [HttpGet("all")]
     public async Task<IActionResult> GetAllResults()
     {
-        // 🔥 Get all users
-        var users = await _mongo.GetAllUsers();
-
-        // ✅ Filter only CLIENT users
-        var clients = users
-            .Where(u => u.Role != null && u.Role.ToLower() == "client")
-            .Select(u => u.UserId)
-            .ToList();
-
-        // 🔥 Get all results
-        var allResults = await _mongo.GetAllResults();
-
-        // ✅ Filter results of client users only
-        var clientResults = allResults
-            .Where(r => clients.Contains(r.UserId))
-            .OrderByDescending(r => r.Date)
-            .ToList();
-
-        return Ok(clientResults);
+        var results = await _mongo.GetAllResultsAgg();
+        return Ok(results);
     }
 }

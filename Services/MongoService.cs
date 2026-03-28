@@ -174,4 +174,11 @@ public class MongoService
 
         return result.DeletedCount > 0;
     }
+
+    public async Task<List<Result>> GetAllResultsAgg()
+    {
+        return await _results
+            .Find(_ => true)   // 🔥 simplest + safest
+            .ToListAsync();
+    }
 }

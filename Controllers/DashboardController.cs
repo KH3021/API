@@ -15,58 +15,44 @@ public class DashboardController : ControllerBase
         _mongo = mongo;
     }
 
-    [HttpGet("{userId}")]
-    public async Task<IActionResult> GetDashboard(string userId)
+    // ================= ADMIN DASHBOARD =================
+    [HttpGet("admin")]
+    public async Task<IActionResult> GetAdminDashboard()
     {
-        // ✅ Get user skills
-        var userSkills = await _mongo.GetUserSkills(userId);
+        // 🔥 Get ALL users
+        var users = await _mongo.GetAllUsers();
 
-        // ✅ Get all results
-        var results = await _mongo.GetResultsByUser(userId);
+        // ✅ Filter ONLY Clients
+        var clients = users
+            .Where(u => u.Role != null && u.Role.ToLower() == "client")
+            .ToList();
 
-        int totalTests = results.Count;
-        int totalSkills = userSkills.Count;
+        int totalUsers = clients.Count;
+
+        // 🔥 Get ALL results
+        var allResults = await _mongo.GetAllResults();
+
+        // ✅ Only results of client users
+        var clientResults = allResults
+            .Where(r => clients.Any(u => u.UserId == r.UserId))
+            .ToList();
+
+        int totalTests = clientResults.Count;
 
         double avg = totalTests == 0 ? 0 :
-            results.Average(r => r.Percentage);
+            clientResults.Average(r => r.Percentage);
 
-        var skillProgress = new List<object>();
+        // 🔥 Get ALL skills
+        var skills = await _mongo.GetAllSkills();
+        int totalSkills = skills.Count;
 
-        // 🔥 For each skill → calculate gap
-        foreach (var skill in userSkills)
+        // ✅ FINAL RESPONSE
+        return Ok(new
         {
-            var skillResults = results
-                .Where(r => r.SkillId == skill.SkillId && r.Percentage == 100)
-                .ToList();
-
-            int beginner = Math.Min(skillResults.Count(r => r.Level.ToLower() == "beginner"), 40);
-            int mid = Math.Min(skillResults.Count(r => r.Level.ToLower() == "mid"), 40);
-            int expert = Math.Min(skillResults.Count(r => r.Level.ToLower() == "expert"), 40);
-
-            double completion = (
-                ((double)beginner / 40 * 100) +
-                ((double)mid / 40 * 100) +
-                ((double)expert / 40 * 100)
-            ) / 3;
-
-            skillProgress.Add(new
-            {
-                SkillId = skill.SkillId,
-                Completion = Math.Round(completion, 2),
-                Gap = Math.Round(100 - completion, 2),
-                IsMastered = (beginner >= 40 && mid >= 40 && expert >= 40)
-            });
-        }
-
-        var dashboard = new DashboardModel
-        {
-            UserId = userId,
-            TotalSkills = totalSkills,
-            TotalTests = totalTests,
-            AveragePercentage = Math.Round(avg, 2),
-            SkillProgress = skillProgress
-        };
-
-        return Ok(dashboard);
+            totalUsers,
+            totalSkills,
+            totalTests,
+            averagePercentage = Math.Round(avg, 2)
+        });
     }
 }

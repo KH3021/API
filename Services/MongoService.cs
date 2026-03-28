@@ -23,7 +23,6 @@ public class MongoService
         var client = new MongoClient(connection);
         var database = client.GetDatabase("AuthDB");
 
-        // 🔥 COLLECTIONS
         _users = database.GetCollection<User>("Users");
         _skills = database.GetCollection<Skill>("Skills");
         _results = database.GetCollection<Result>("Results");
@@ -74,7 +73,6 @@ public class MongoService
         return result.DeletedCount > 0;
     }
 
-    // 🔥 SAFE UPDATE (ADMIN FRIENDLY)
     public async Task<bool> UpdateUserSafe(string userId, UpdateUserDto dto)
     {
         var existingUser = await _users
@@ -134,7 +132,12 @@ public class MongoService
             .ToListAsync();
     }
 
-    // 🔥 OPTIONAL (for future optimization)
+    // 🔥 NEW METHOD (VERY IMPORTANT FOR ADMIN DASHBOARD)
+    public async Task<List<Result>> GetAllResults()
+    {
+        return await _results.Find(_ => true).ToListAsync();
+    }
+
     public async Task<List<Result>> GetResultsByUserAndSkill(string userId, string skillId)
     {
         return await _results

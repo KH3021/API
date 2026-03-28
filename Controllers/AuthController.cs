@@ -69,11 +69,10 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            message = "Login successful",
-            user.UserId,
-            user.Email,
-            user.FullName,
-            user.Role
+            userId = user.UserId,
+            email = user.Email,
+            fullName = user.FullName,
+            role = user.Role   // 🔥 IMPORTANT
         });
     }
 

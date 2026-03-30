@@ -1,6 +1,7 @@
 ﻿using API.Models;
 using System.Text;
 using System.Text.Json;
+using System.Net.Http.Headers;
 
 namespace API.Services;
 
@@ -15,66 +16,87 @@ public class RoadmapService
         _config = config;
     }
 
-    public async Task<string?> GenerateRoadmap(string userId, string skillId)
+    public async Task<string?> GenerateRoadmap(string userId)
     {
-        // 🔹 FETCH DATA
+        // 🔹 FETCH USER
         var user = await _mongo.GetUserByCustomId(userId);
-        var skill = await _mongo.GetSkillById(skillId);
-        var results = await _mongo.GetResultsByUserAndSkill(userId, skillId);
-
-        if (user == null || skill == null || results.Count == 0)
+        if (user == null)
             return null;
 
-        var latest = results.OrderByDescending(r => r.Date).First();
-        var avgScore = results.Average(r => r.Percentage);
-        var attempts = results.Count;
+        // 🔹 GET RESULTS
+        var results = await _mongo.GetResultsByUser(userId);
 
-        string level = latest.Percentage < 40 ? "Beginner"
-                      : latest.Percentage < 70 ? "Intermediate"
-                      : "Advanced";
+        string prompt;
 
-        // 🔹 WEAK AREAS
-        var weakQuestions = latest.Answers
-            .Where(a => a.SelectedAnswer != a.CorrectAnswer)
-            .Select(a => a.Question)
-            .Take(5)
-            .ToList();
+        // ============================
+        // 🔥 CASE 1: NO RESULTS
+        // ============================
+        if (results.Count == 0)
+        {
+            var skills = await _mongo.GetAllSkills();
 
-        // 🔥 PROMPT (VERY IMPORTANT)
-        var prompt = $@"
-Create a detailed (1000–1500 words) personalized learning roadmap.
+            var skillNames = skills
+                .Select(s => s.SkillName)
+                .ToList();
 
-User:
-- Name: {user.FullName}
-- UserId: {user.UserId}
-- Skill: {skill.SkillName}
-- Attempts: {attempts}
-- Latest Score: {latest.Percentage}%
-- Average Score: {avgScore:F2}%
-- Level: {level}
+            prompt = $@"
+User Name: {user.FullName}
 
-Weak Areas:
-{string.Join(", ", weakQuestions)}
+Skills:
+{string.Join(", ", skillNames)}
 
-Requirements:
-- Analyze user mistakes deeply
-- Explain weak areas clearly
-- Provide step-by-step roadmap
+Task:
+Write a beginner-friendly 500-word guide to improve skills using SkillBridge.
 
 Include:
-1. Skill gap analysis
-2. Daily & weekly plan
-3. Practice strategy
-4. 3 projects
-5. Resources (YouTube, Docs, Platforms)
-6. Timeline
-7. Mistake fixing strategy
-
-Make it SPECIFIC to this user (not generic).
-Use headings and structured format.
+- How to start learning
+- Importance of consistency
+- Practice strategy
+- Motivation tips
 ";
+        }
+        else
+        {
+            // ============================
+            // 🔥 CASE 2: HAS RESULTS
+            // ============================
+            var grouped = results.GroupBy(r => r.SkillId);
+            var analysisBuilder = new StringBuilder();
 
-        // 🔥 SAME MODEL AS TEST CONTROLLER
+            foreach (var group in grouped)
+            {
+                var skillData = await _mongo.GetSkillById(group.Key);
+                var skillName = skillData?.SkillName ?? "Unknown";
+
+                var attempts = group.Count();
+                var avgScore = group.Average(r => r.Percentage);
+
+                analysisBuilder.AppendLine(
+                    $"Skill: {skillName}, Attempts: {attempts}, Avg: {avgScore:F1}%"
+                );
+            }
+
+            prompt = $@"
+User: {user.FullName}
+
+Performance:
+{analysisBuilder}
+
+Task:
+Create a personalized roadmap (max 700 words) including:
+- Strengths & weaknesses
+- Improvement plan
+- Practice strategy
+";
+        }
+
+        // 🔥 LIMIT PROMPT SIZE (prevents BadRequest)
+        if (prompt.Length > 4000)
+            prompt = prompt.Substring(0, 4000);
+
+        // ============================
+        // 🔥 API REQUEST
+        // ============================
         var requestBody = new
         {
             model = "llama-3.1-8b-instant",
@@ -86,8 +108,17 @@ Use headings and structured format.
 
         var apiKey = _config["Groq:ApiKey"];
 
+        if (string.IsNullOrEmpty(apiKey))
+            throw new Exception("API Key not found ❌");
+
         var client = new HttpClient();
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+        client.DefaultRequestHeaders.Clear();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", apiKey);
+
+        client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.PostAsync(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -96,6 +127,12 @@ Use headings and structured format.
 
         var json = await response.Content.ReadAsStringAsync();
 
+        if (!response.IsSuccessStatusCode)
+            throw new Exception($"AI Error: {response.StatusCode} | {json}");
+
+        // ============================
+        // 🔥 PARSE RESPONSE
+        // ============================
         using var doc = JsonDocument.Parse(json);
 
         var content = doc.RootElement
@@ -103,6 +140,15 @@ Use headings and structured format.
             .GetProperty("message")
             .GetProperty("content")
             .GetString();
+
+        if (string.IsNullOrEmpty(content))
+            throw new Exception("Empty response from AI ❌");
+
+        // ============================
+        // 📁 SAVE FILE
+        // ============================
+        var filePath = $@"C:\Users\Admin\Downloads\Roadmap_{userId}.txt";
+        await File.WriteAllTextAsync(filePath, content);
 
         return content;
     }

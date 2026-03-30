@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using API.Services;
-using API.Models;
 
 namespace API.Controllers;
 
@@ -8,24 +7,45 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class RoadmapController : ControllerBase
 {
-    private readonly RoadmapService _service;
+    private readonly RoadmapService _roadmapService;
 
-    public RoadmapController(RoadmapService service)
+    public RoadmapController(RoadmapService roadmapService)
     {
-        _service = service;
+        _roadmapService = roadmapService;
     }
 
     [HttpGet("generate")]
-    public async Task<IActionResult> Generate(string userId, string skillId)
+    public async Task<IActionResult> Generate(string userId)
     {
-        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(skillId))
-            return BadRequest("UserId and SkillId required");
+        try
+        {
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest(new
+                {
+                    message = "UserId is required ❌"
+                });
 
-        var roadmap = await _service.GenerateRoadmap(userId, skillId);
+            var result = await _roadmapService.GenerateRoadmap(userId);
 
-        if (roadmap == null)
-            return NotFound("Skill not found");
+            if (result == null)
+                return NotFound(new
+                {
+                    message = "User not found ❌"
+                });
 
-        return Ok(roadmap);
+            return Ok(new
+            {
+                success = true,
+                data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                message = "Something went wrong ❌",
+                error = ex.Message
+            });
+        }
     }
 }

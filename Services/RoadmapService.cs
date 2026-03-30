@@ -90,7 +90,7 @@ Create a personalized roadmap (max 700 words) including:
 ";
         }
 
-        // 🔥 LIMIT PROMPT SIZE (prevents BadRequest)
+        // 🔥 LIMIT PROMPT SIZE
         if (prompt.Length > 4000)
             prompt = prompt.Substring(0, 4000);
 
@@ -144,11 +144,8 @@ Create a personalized roadmap (max 700 words) including:
         if (string.IsNullOrEmpty(content))
             throw new Exception("Empty response from AI ❌");
 
-        // ============================
-        // 📁 SAVE FILE
-        // ============================
-        var filePath = $@"C:\Users\Admin\Downloads\Roadmap_{userId}.txt";
-        await File.WriteAllTextAsync(filePath, content);
+        // ✅ OPTIONAL: Fix formatting
+        content = content.Replace("\\n", "\n");
 
         return content;
     }

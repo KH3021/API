@@ -15,16 +15,16 @@ public class UserSkillsController : ControllerBase
         _mongo = mongo;
     }
 
-    // ✅ Add skill to user (with validation)
+    // Add skill to user (with validation)
     [HttpPost("add")]
     public async Task<IActionResult> AddSkill(UserSkill userSkill)
     {
-        // 🔥 Check if user exists
+        // Check if user exists
         var user = await _mongo.GetUserByCustomId(userSkill.UserId);
         if (user == null)
             return BadRequest("User not found");
 
-        // 🔥 Check if skill exists
+        // Check if skill exists
         var skill = await _mongo.GetSkillById(userSkill.SkillId);
         if (skill == null)
             return BadRequest("Invalid SkillId");
@@ -34,7 +34,7 @@ public class UserSkillsController : ControllerBase
         return Ok(result);
     }
 
-    // ✅ Get all skills of user
+    // Get all skills of user
     [HttpGet("{userId}")]
     public async Task<IActionResult> GetSkills(string userId)
     {
@@ -42,7 +42,7 @@ public class UserSkillsController : ControllerBase
         return Ok(skills);
     }
 
-    // ✅ Delete skill
+    // Delete skill
     [HttpDelete("{userId}/{skillId}")]
     public async Task<IActionResult> DeleteSkill(string userId, string skillId)
     {

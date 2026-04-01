@@ -18,19 +18,16 @@ public class RoadmapService
 
     public async Task<string?> GenerateRoadmap(string userId)
     {
-        // 🔹 FETCH USER
+        //  FETCH USER
         var user = await _mongo.GetUserByCustomId(userId);
         if (user == null)
             return null;
 
-        // 🔹 GET RESULTS
+        //  GET RESULTS
         var results = await _mongo.GetResultsByUser(userId);
 
         string prompt;
 
-        // ============================
-        // 🔥 CASE 1: NO RESULTS
-        // ============================
         if (results.Count == 0)
         {
             var skills = await _mongo.GetAllSkills();
@@ -57,9 +54,6 @@ Include:
         }
         else
         {
-            // ============================
-            // 🔥 CASE 2: HAS RESULTS
-            // ============================
             var grouped = results.GroupBy(r => r.SkillId);
             var analysisBuilder = new StringBuilder();
 
@@ -90,13 +84,10 @@ Create a personalized roadmap (max 700 words) including:
 ";
         }
 
-        // 🔥 LIMIT PROMPT SIZE
+        // LIMIT PROMPT SIZE
         if (prompt.Length > 4000)
             prompt = prompt.Substring(0, 4000);
 
-        // ============================
-        // 🔥 API REQUEST
-        // ============================
         var requestBody = new
         {
             model = "llama-3.1-8b-instant",
@@ -109,7 +100,7 @@ Create a personalized roadmap (max 700 words) including:
         var apiKey = _config["Groq:ApiKey"];
 
         if (string.IsNullOrEmpty(apiKey))
-            throw new Exception("API Key not found ❌");
+            throw new Exception("API Key not found");
 
         var client = new HttpClient();
 
@@ -130,9 +121,6 @@ Create a personalized roadmap (max 700 words) including:
         if (!response.IsSuccessStatusCode)
             throw new Exception($"AI Error: {response.StatusCode} | {json}");
 
-        // ============================
-        // 🔥 PARSE RESPONSE
-        // ============================
         using var doc = JsonDocument.Parse(json);
 
         var content = doc.RootElement
@@ -142,9 +130,9 @@ Create a personalized roadmap (max 700 words) including:
             .GetString();
 
         if (string.IsNullOrEmpty(content))
-            throw new Exception("Empty response from AI ❌");
+            throw new Exception("Empty response from AI ");
 
-        // ✅ OPTIONAL: Fix formatting
+        // OPTIONAL: Fix formatting
         content = content.Replace("\\n", "\n");
 
         return content;

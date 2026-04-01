@@ -29,7 +29,7 @@ public class MongoService
         _userSkills = database.GetCollection<UserSkill>("UserSkills");
     }
 
-    // ================= USER ID GENERATOR =================
+    // USER ID GENERATOR
 
     public async Task<string> GenerateUserId()
     {
@@ -45,7 +45,7 @@ public class MongoService
         return $"U{numberPart + 1:D3}";
     }
 
-    // ================= USERS =================
+    // USERS
 
     public async Task CreateUser(User user)
     {
@@ -95,7 +95,7 @@ public class MongoService
         return true;
     }
 
-    // ================= SKILLS =================
+    // SKILLS
 
     public async Task<List<Skill>> GetAllSkills()
     {
@@ -117,7 +117,7 @@ public class MongoService
         await _skills.DeleteOneAsync(s => s.SkillId == skillId);
     }
 
-    // ================= RESULTS =================
+    // RESULTS
 
     public async Task SaveResult(Result result)
     {
@@ -132,7 +132,7 @@ public class MongoService
             .ToListAsync();
     }
 
-    // 🔥 NEW METHOD (VERY IMPORTANT FOR ADMIN DASHBOARD)
+    // NEW METHOD (VERY IMPORTANT FOR ADMIN DASHBOARD)
     public async Task<List<Result>> GetAllResults()
     {
         return await _results.Find(_ => true).ToListAsync();
@@ -145,7 +145,7 @@ public class MongoService
             .ToListAsync();
     }
 
-    // ================= USER SKILLS =================
+    // USER SKILLS
 
     public async Task<string> AddUserSkill(UserSkill userSkill)
     {
@@ -178,7 +178,7 @@ public class MongoService
     public async Task<List<Result>> GetAllResultsAgg()
     {
         return await _results
-            .Find(_ => true)   // 🔥 simplest + safest
+            .Find(_ => true)  
             .ToListAsync();
     }
 }

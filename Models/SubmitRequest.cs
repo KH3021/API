@@ -9,9 +9,9 @@ public class AnswerModel
 
 public class SubmitRequest
 {
-    public string UserId { get; set; }     // 🔥 U001
-    public string SkillId { get; set; }    // 🔥 S001 instead of name
-    public string Level { get; set; }      // Beginner / Mid / Expert
+    public string UserId { get; set; }     
+    public string SkillId { get; set; }    
+    public string Level { get; set; }      
 
     public List<AnswerModel> Answers { get; set; } = new();
 }

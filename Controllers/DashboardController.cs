@@ -15,24 +15,24 @@ public class DashboardController : ControllerBase
         _mongo = mongo;
     }
 
-    // ================= ADMIN DASHBOARD =================
+    // ADMIN DASHBOARD
     [HttpGet("admin")]
     public async Task<IActionResult> GetAdminDashboard()
     {
-        // 🔥 Get ALL users
+        // Get ALL users
         var users = await _mongo.GetAllUsers();
 
-        // ✅ Filter ONLY Clients
+        // Filter ONLY Clients
         var clients = users
             .Where(u => u.Role != null && u.Role.ToLower() == "client")
             .ToList();
 
         int totalUsers = clients.Count;
 
-        // 🔥 Get ALL results
+        // Get ALL results
         var allResults = await _mongo.GetAllResults();
 
-        // ✅ Only results of client users
+        // Only results of client users
         var clientResults = allResults
             .Where(r => clients.Any(u => u.UserId == r.UserId))
             .ToList();
@@ -42,11 +42,11 @@ public class DashboardController : ControllerBase
         double avg = totalTests == 0 ? 0 :
             clientResults.Average(r => r.Percentage);
 
-        // 🔥 Get ALL skills
+        // Get ALL skills
         var skills = await _mongo.GetAllSkills();
         int totalSkills = skills.Count;
 
-        // ✅ FINAL RESPONSE
+        // FINAL RESPONSE
         return Ok(new
         {
             totalUsers,

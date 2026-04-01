@@ -33,7 +33,7 @@ public class Result
     [BsonElement("date")]
     public DateTime Date { get; set; } = DateTime.UtcNow;
 
-    // 🔥 IMPORTANT: STORE USER ANSWERS
+    // IMPORTANT: STORE USER ANSWERS
     [BsonElement("answers")]
     public List<AnswerModel> Answers { get; set; } = new();
 }

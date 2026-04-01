@@ -44,7 +44,7 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 
-    // 🔥 UPDATED SAFE PUT
+    // UPDATED SAFE PUT
     [HttpPut("{userId}")]
     public async Task<IActionResult> UpdateUser(string userId, UpdateUserDto dto)
     {

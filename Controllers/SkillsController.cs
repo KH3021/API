@@ -22,7 +22,7 @@ public class SkillsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddSkill(Skill skill)
     {
-        skill.Id = null; // 🔥 important
+        skill.Id = null;
         await _mongo.AddSkill(skill);
         return Ok("Skill Added");
     }

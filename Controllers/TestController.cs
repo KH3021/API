@@ -19,12 +19,12 @@ public class TestController : ControllerBase
         _mongo = mongo;
     }
 
-    // ================= GENERATE TEST =================
+    // GENERATE TEST
 
     [HttpGet("generate/{skillId}/{level}/{set}")]
     public async Task<IActionResult> GenerateTest(string skillId, string level, int set)
     {
-        // 🔥 GET SKILL NAME FROM DB
+        // GET SKILL NAME FROM DB
         var skill = await _mongo.GetSkillById(skillId);
 
         if (skill == null)
@@ -34,7 +34,7 @@ public class TestController : ControllerBase
 
         var apiKey = _config["Groq:ApiKey"];
 
-        // 🔥 IMPROVED PROMPT (NO MIXED QUESTIONS)
+        // IMPROVED PROMPT (NO MIXED QUESTIONS)
         var prompt = $@"
                         Generate exactly 10 multiple choice questions for {skillName} at {level} level.
 
@@ -80,7 +80,7 @@ public class TestController : ControllerBase
             .GetProperty("content")
             .GetString();
 
-        // ================= SAFE PARSING =================
+        // SAFE PARSING
 
         try
         {
@@ -117,7 +117,7 @@ public class TestController : ControllerBase
         }
     }
 
-    // ================= SUBMIT TEST =================
+    // SUBMIT TEST
 
     [HttpPost("submit")]
     public async Task<IActionResult> SubmitTest([FromBody] SubmitRequest request)
@@ -153,7 +153,7 @@ public class TestController : ControllerBase
             ResultText = resultText,
             Date = DateTime.UtcNow,
 
-            // 🔥 ADD THIS LINE
+            // ADD THIS LINE
             Answers = request.Answers
         };
 
@@ -162,7 +162,7 @@ public class TestController : ControllerBase
         return Ok(result);
     }
 
-    // ================= USER RESULTS =================
+    // USER RESULTS
 
     [HttpGet("results/{userId}")]
     public async Task<IActionResult> GetResults(string userId)
@@ -171,7 +171,7 @@ public class TestController : ControllerBase
         return Ok(results);
     }
 
-    // ================= ADMIN: ALL RESULTS =================
+    // ADMIN: ALL RESULTS 
 
     [HttpGet("all")]
     public async Task<IActionResult> GetAllResults()

@@ -15,7 +15,7 @@ public class AuthController : ControllerBase
         _mongo = mongo;
     }
 
-    // ================= REGISTER =================
+    // REGISTER
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(User user)
@@ -31,13 +31,13 @@ public class AuthController : ControllerBase
 
         if (existingUser != null)
         {
-            return BadRequest("User already exists ❌");
+            return BadRequest("User already exists");
         }
 
-        // 🔥 AUTO GENERATE USER ID
+        // AUTO GENERATE USER ID
         user.UserId = await _mongo.GenerateUserId();
 
-        // 🔐 HASH PASSWORD
+        // HASH PASSWORD
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
         await _mongo.CreateUser(user);
@@ -52,7 +52,7 @@ public class AuthController : ControllerBase
         });
     }
 
-    // ================= LOGIN =================
+    // LOGIN
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginModel model)
@@ -72,11 +72,11 @@ public class AuthController : ControllerBase
             userId = user.UserId,
             email = user.Email,
             fullName = user.FullName,
-            role = user.Role   // 🔥 IMPORTANT
+            role = user.Role
         });
     }
 
-    // ================= GET USER =================
+    // GET USER
 
     [HttpGet("user/{email}")]
     public async Task<IActionResult> GetUser(string email)

@@ -22,7 +22,7 @@ public class RoadmapController : ControllerBase
             if (string.IsNullOrEmpty(userId))
                 return BadRequest(new
                 {
-                    message = "UserId is required ❌"
+                    message = "UserId is required"
                 });
 
             var result = await _roadmapService.GenerateRoadmap(userId);
@@ -30,7 +30,7 @@ public class RoadmapController : ControllerBase
             if (result == null)
                 return NotFound(new
                 {
-                    message = "User not found ❌"
+                    message = "User not found"
                 });
 
             return Ok(new
@@ -43,7 +43,7 @@ public class RoadmapController : ControllerBase
         {
             return StatusCode(500, new
             {
-                message = "Something went wrong ❌",
+                message = "Something went wrong",
                 error = ex.Message
             });
         }

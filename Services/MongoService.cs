@@ -9,6 +9,7 @@ public class MongoService
     private readonly IMongoCollection<Skill> _skills;
     private readonly IMongoCollection<Result> _results;
     private readonly IMongoCollection<UserSkill> _userSkills;
+    private readonly IMongoCollection<Notification> _notifications;
 
     public MongoService(IConfiguration config)
     {
@@ -27,6 +28,7 @@ public class MongoService
         _skills = database.GetCollection<Skill>("Skills");
         _results = database.GetCollection<Result>("Results");
         _userSkills = database.GetCollection<UserSkill>("UserSkills");
+        _notifications = database.GetCollection<Notification>("Notifications");
     }
 
     // USER ID GENERATOR
@@ -160,6 +162,11 @@ public class MongoService
         return "Skill added";
     }
 
+    public async Task<List<UserSkill>> GetAllUserSkills()
+    {
+        return await _userSkills.Find(_ => true).ToListAsync();
+    }
+
     public async Task<List<UserSkill>> GetUserSkills(string userId)
     {
         return await _userSkills
@@ -180,5 +187,62 @@ public class MongoService
         return await _results
             .Find(_ => true)  
             .ToListAsync();
+    }
+
+    // NOTIFICATIONS
+
+    public IMongoCollection<Notification> Notifications => _notifications;
+
+    public async Task AddNotification(Notification notification)
+    {
+        await _notifications.InsertOneAsync(notification);
+    }
+
+    public async Task<string> GenerateNotificationId()
+    {
+        var last = await _notifications
+            .Find(_ => true)
+            .SortByDescending(n => n.Nid)
+            .FirstOrDefaultAsync();
+
+        if (last == null || string.IsNullOrEmpty(last.Nid))
+            return "N001";
+
+        int num = int.Parse(last.Nid.Substring(1));
+        return $"N{num + 1:D3}";
+    }
+
+    public async Task<List<Notification>> GetUserNotifications(string userId)
+    {
+        return await _notifications
+            .Find(n => n.UserId == userId)
+            .SortByDescending(n => n.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Notification?> GetUserNotificationByMessage(string userId, string message)
+    {
+        return await _notifications
+            .Find(n => n.UserId == userId && n.Message == message)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task UpdateNotificationTime(string id)
+    {
+        var update = Builders<Notification>.Update
+            .Set(n => n.CreatedAt, DateTime.UtcNow)
+            .Set(n => n.IsRead, false);
+
+        await _notifications.UpdateOneAsync(n => n.Id == id, update);
+    }
+
+    public async Task MarkAsReadByNid(string nid)
+    {
+        var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
+
+        await _notifications.UpdateOneAsync(
+            n => n.Nid == nid,
+            update
+        );
     }
 }

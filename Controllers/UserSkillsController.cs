@@ -9,10 +9,12 @@ namespace API.Controllers;
 public class UserSkillsController : ControllerBase
 {
     private readonly MongoService _mongo;
+    private readonly NotificationService _notification;
 
-    public UserSkillsController(MongoService mongo)
+    public UserSkillsController(MongoService mongo, NotificationService notification)
     {
         _mongo = mongo;
+        _notification = notification;
     }
 
     // Add skill to user (with validation)
@@ -30,6 +32,15 @@ public class UserSkillsController : ControllerBase
             return BadRequest("Invalid SkillId");
 
         var result = await _mongo.AddUserSkill(userSkill);
+
+        // 🔔 SEND NOTIFICATION
+        if (result == "Skill added")
+        {
+            await _notification.SendOrUpdateNotification(
+                userSkill.UserId,
+                $"New skill '{skill.SkillName}' added 🚀"
+            );
+        }
 
         return Ok(result);
     }

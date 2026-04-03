@@ -9,10 +9,12 @@ namespace API.Controllers;
 public class ProgressController : ControllerBase
 {
     private readonly ProgressService _service;
+    private readonly NotificationService _notification;
 
-    public ProgressController(ProgressService service)
+    public ProgressController(ProgressService service, NotificationService notification)
     {
         _service = service;
+        _notification = notification;
     }
 
     [HttpPost("submit")]
@@ -25,6 +27,12 @@ public class ProgressController : ControllerBase
             request.UserId,
             request.SkillId,
             request.Score
+        );
+
+        // 🔔 SEND NOTIFICATION
+        await _notification.SendOrUpdateNotification(
+            request.UserId,
+            "Your progress has been updated 📈"
         );
 
         return Ok(result);

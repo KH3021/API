@@ -18,7 +18,7 @@ public class NotificationService
         if (existing != null)
         {
             // 🔄 UPDATE existing notification
-            await _mongo.UpdateNotificationTime(existing.Id);
+            await _mongo.UpdateNotificationTime(existing.Nid);
         }
         else
         {
@@ -30,6 +30,7 @@ public class NotificationService
                 Nid = nid,
                 UserId = userId,
                 Message = message,
+                IsRead = false, // 🔥 IMPORTANT
                 CreatedAt = DateTime.UtcNow
             };
 

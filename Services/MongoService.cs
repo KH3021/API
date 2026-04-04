@@ -236,12 +236,24 @@ public class MongoService
         await _notifications.UpdateOneAsync(n => n.Id == id, update);
     }
 
-    public async Task MarkAsReadByNid(string nid)
+    public async Task<bool> MarkAsReadByNid(string nid)
     {
-        var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
+        var update = Builders<Notification>.Update.Set(x => x.IsRead, true);
 
-        await _notifications.UpdateOneAsync(
-            n => n.Nid == nid,
+        var result = await _notifications.UpdateOneAsync(
+            x => x.Nid == nid,
+            update
+        );
+
+        return result.ModifiedCount > 0;
+    }
+
+    public async Task MarkAllAsRead(string userId)
+    {
+        var update = Builders<Notification>.Update.Set(x => x.IsRead, true);
+
+        await _notifications.UpdateManyAsync(
+            x => x.UserId == userId,
             update
         );
     }

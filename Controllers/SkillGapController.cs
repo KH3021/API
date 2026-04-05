@@ -42,9 +42,9 @@ public class SkillGapController : ControllerBase
             mid = Math.Min(mid, 40);
             expert = Math.Min(expert, 40);
 
-            double beginnerPct = (double)beginner / 40 * 100;
-            double midPct = (double)mid / 40 * 100;
-            double expertPct = (double)expert / 40 * 100;
+            double beginnerPct = (double)beginner / 33 * 100;
+            double midPct = (double)mid / 33 * 100;
+            double expertPct = (double)expert / 34 * 80;
 
             double completion = (beginnerPct + midPct + expertPct) / 3;
             double gap = 100 - completion;

@@ -9,21 +9,26 @@ public class RoadmapService
 {
     private readonly MongoService _mongo;
     private readonly IConfiguration _config;
+    private readonly NotificationService _notification;
 
-    public RoadmapService(MongoService mongo, IConfiguration config)
+    public RoadmapService(
+        MongoService mongo,
+        IConfiguration config,
+        NotificationService notification)
     {
         _mongo = mongo;
         _config = config;
+        _notification = notification;
     }
 
     public async Task<string?> GenerateRoadmap(string userId)
     {
-        //  FETCH USER
+        // 🔹 FETCH USER
         var user = await _mongo.GetUserByCustomId(userId);
         if (user == null)
             return null;
 
-        //  GET RESULTS
+        // 🔹 GET RESULTS
         var results = await _mongo.GetResultsByUser(userId);
 
         string prompt;
@@ -84,7 +89,6 @@ Create a personalized roadmap (max 700 words) including:
 ";
         }
 
-        // LIMIT PROMPT SIZE
         if (prompt.Length > 4000)
             prompt = prompt.Substring(0, 4000);
 
@@ -104,7 +108,6 @@ Create a personalized roadmap (max 700 words) including:
 
         var client = new HttpClient();
 
-        client.DefaultRequestHeaders.Clear();
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", apiKey);
 
@@ -130,10 +133,15 @@ Create a personalized roadmap (max 700 words) including:
             .GetString();
 
         if (string.IsNullOrEmpty(content))
-            throw new Exception("Empty response from AI ");
+            throw new Exception("Empty response from AI");
 
-        // OPTIONAL: Fix formatting
         content = content.Replace("\\n", "\n");
+
+        // 🔔 NOTIFICATION (FINAL ADD)
+        await _notification.SendOrUpdateNotification(
+            userId,
+            "Your personalized roadmap is ready 🚀"
+        );
 
         return content;
     }

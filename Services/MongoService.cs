@@ -257,4 +257,11 @@ public class MongoService
             update
         );
     }
+
+    public async Task UpdateNotification(Notification notification)
+    {
+        var filter = Builders<Notification>.Filter.Eq(n => n.Nid, notification.Nid);
+
+        await _notifications.ReplaceOneAsync(filter, notification);
+    }
 }

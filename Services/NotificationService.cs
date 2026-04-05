@@ -17,12 +17,15 @@ public class NotificationService
 
         if (existing != null)
         {
-            // 🔄 UPDATE existing notification
-            await _mongo.UpdateNotificationTime(existing.Nid);
+            // 🔥 FORCE UPDATE (IMPORTANT FIX)
+            existing.IsRead = false; // ✅ reset so frontend treats it as NEW
+            existing.CreatedAt = DateTime.UtcNow; // ✅ update timestamp
+
+            await _mongo.UpdateNotification(existing); // 🔥 must update full object
         }
         else
         {
-            // ➕ CREATE new notification
+            // ➕ CREATE NEW
             var nid = await _mongo.GenerateNotificationId();
 
             var notification = new Notification
@@ -30,7 +33,7 @@ public class NotificationService
                 Nid = nid,
                 UserId = userId,
                 Message = message,
-                IsRead = false, // 🔥 IMPORTANT
+                IsRead = false,
                 CreatedAt = DateTime.UtcNow
             };
 

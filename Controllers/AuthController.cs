@@ -67,6 +67,16 @@ public class AuthController : ControllerBase
         if (!isValid)
             return Unauthorized("Invalid email or password");
 
+        // 🔥 UPDATE LAST LOGIN (DROP-OFF LOGIC)
+        user.LastLogin = DateTime.UtcNow;
+
+        await _mongo.UpdateUserSafe(user.UserId, new UpdateUserDto
+        {
+            FullName = user.FullName,
+            Email = user.Email,
+            Password = null
+        });
+
         return Ok(new
         {
             userId = user.UserId,

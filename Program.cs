@@ -16,6 +16,10 @@ builder.Services.AddScoped<AnalysisService>();
 
 builder.Services.AddScoped<NotificationService>();
 
+builder.Services.AddScoped<GamificationService>();
+
+builder.Services.AddScoped<StudyPlannerService>();
+
 var app = builder.Build();
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";

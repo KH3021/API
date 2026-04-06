@@ -27,6 +27,17 @@ public class DashboardController : ControllerBase
 
         int totalUsers = clients.Count;
 
+        // 🔥 USER GROWTH (DATE WISE)
+        var userGrowth = clients
+            .GroupBy(u => u.CreatedDate.Date)
+            .Select(g => new
+            {
+                date = g.Key,
+                count = g.Count()
+            })
+            .OrderBy(x => x.date)
+            .ToList();
+
         // 🔹 RESULTS
         var results = await _mongo.GetAllResults();
 
@@ -39,50 +50,71 @@ public class DashboardController : ControllerBase
         double avg = totalTests == 0 ? 0 :
             clientResults.Average(r => r.Percentage);
 
-        // 🔹 SKILLS
-        var skills = await _mongo.GetAllSkills();
-        int totalSkills = skills.Count;
-
-        // 🔥 SKILL MAP (FAST LOOKUP)
-        var skillMap = skills.ToDictionary(
-            s => s.SkillId,
-            s => s.SkillName
-        );
-
         // 🔥 ACTIVE USERS
         int activeUsers = clientResults
             .Select(r => r.UserId)
             .Distinct()
             .Count();
 
-        // 🔥 USER SKILLS
+        // 🔥 MOST ACTIVE USERS
+        var mostActiveUsers = clientResults
+            .GroupBy(r => r.UserId)
+            .Select(g => new
+            {
+                userId = g.Key,
+                attempts = g.Count()
+            })
+            .OrderByDescending(x => x.attempts)
+            .Take(5)
+            .ToList();
+
+        // 🔹 SKILLS
+        var skills = await _mongo.GetAllSkills();
+        int totalSkills = skills.Count;
+
+        var skillMap = skills.ToDictionary(
+            s => s.SkillId,
+            s => s.SkillName
+        );
+
+        // 🔥 TRENDING SKILLS (BASED ON RESULTS)
+        var trendingSkills = clientResults
+            .GroupBy(r => r.SkillId)
+            .Select(g => new
+            {
+                skill = skillMap.TryGetValue(g.Key, out var name) ? name : g.Key,
+                count = g.Count()
+            })
+            .OrderByDescending(x => x.count)
+            .Take(5)
+            .ToList();
+
+        // 🔥 USER SKILLS (FOR ADDITIONAL INSIGHT)
         var userSkills = await _mongo.GetAllUserSkills();
 
-        // 🔥 FILTER ONLY CLIENT USERS
         var clientUserSkills = userSkills
             .Where(us => clients.Any(u => u.UserId == us.UserId))
             .ToList();
 
-        // 🔥 TOP SKILLS
+        // 🔥 TOP SKILLS (BASED ON SELECTION)
         var topSkills = clientUserSkills
             .GroupBy(x => x.SkillId)
             .Select(g => new
             {
-                SkillId = g.Key,
-                Count = g.Count()
+                skill = skillMap.TryGetValue(g.Key, out var name) ? name : g.Key,
+                count = g.Count()
             })
-            .OrderByDescending(x => x.Count)
+            .OrderByDescending(x => x.count)
             .Take(5)
             .ToList();
 
-        // 🔥 MAP SkillId → SkillName (SAFE)
-        var topSkillsWithNames = topSkills.Select(ts => new
-        {
-            skill = skillMap.TryGetValue(ts.SkillId, out var name)
-                ? name
-                : ts.SkillId,
-            count = ts.Count
-        }).ToList();
+        // 🔥 DROP RATE
+        var threshold = DateTime.UtcNow.AddDays(-5);
+
+        int inactiveUsers = clients.Count(u => u.LastLogin < threshold);
+
+        double dropRate = totalUsers == 0 ? 0 :
+            (inactiveUsers * 100.0 / totalUsers);
 
         // 🔹 FINAL RESPONSE
         return Ok(new
@@ -93,7 +125,13 @@ public class DashboardController : ControllerBase
             averagePercentage = Math.Round(avg, 2),
 
             activeUsers,
-            topSkills = topSkillsWithNames
+            inactiveUsers,
+            dropRate = Math.Round(dropRate, 2),
+
+            trendingSkills,
+            topSkills,
+            mostActiveUsers,
+            userGrowth
         });
     }
-}   
+}

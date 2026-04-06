@@ -10,6 +10,7 @@ public class MongoService
     private readonly IMongoCollection<Result> _results;
     private readonly IMongoCollection<UserSkill> _userSkills;
     private readonly IMongoCollection<Notification> _notifications;
+    private readonly IMongoCollection<UserStats> _userStats;
 
     public MongoService(IConfiguration config)
     {
@@ -29,9 +30,12 @@ public class MongoService
         _results = database.GetCollection<Result>("Results");
         _userSkills = database.GetCollection<UserSkill>("UserSkills");
         _notifications = database.GetCollection<Notification>("Notifications");
+        _userStats = database.GetCollection<UserStats>("UserStats");
     }
 
+    // =========================
     // USER ID GENERATOR
+    // =========================
 
     public async Task<string> GenerateUserId()
     {
@@ -47,7 +51,9 @@ public class MongoService
         return $"U{numberPart + 1:D3}";
     }
 
+    // =========================
     // USERS
+    // =========================
 
     public async Task CreateUser(User user)
     {
@@ -97,7 +103,9 @@ public class MongoService
         return true;
     }
 
+    // =========================
     // SKILLS
+    // =========================
 
     public async Task<List<Skill>> GetAllSkills()
     {
@@ -119,7 +127,9 @@ public class MongoService
         await _skills.DeleteOneAsync(s => s.SkillId == skillId);
     }
 
+    // =========================
     // RESULTS
+    // =========================
 
     public async Task SaveResult(Result result)
     {
@@ -134,7 +144,6 @@ public class MongoService
             .ToListAsync();
     }
 
-    // NEW METHOD (VERY IMPORTANT FOR ADMIN DASHBOARD)
     public async Task<List<Result>> GetAllResults()
     {
         return await _results.Find(_ => true).ToListAsync();
@@ -147,7 +156,14 @@ public class MongoService
             .ToListAsync();
     }
 
+    public async Task<List<Result>> GetAllResultsAgg()
+    {
+        return await _results.Find(_ => true).ToListAsync();
+    }
+
+    // =========================
     // USER SKILLS
+    // =========================
 
     public async Task<string> AddUserSkill(UserSkill userSkill)
     {
@@ -182,14 +198,15 @@ public class MongoService
         return result.DeletedCount > 0;
     }
 
-    public async Task<List<Result>> GetAllResultsAgg()
-    {
-        return await _results
-            .Find(_ => true)  
-            .ToListAsync();
-    }
+    // =========================
+    //  GAMIFICATION
+    // =========================
 
+    public IMongoCollection<UserStats> UserStats => _userStats;
+
+    // =========================
     // NOTIFICATIONS
+    // =========================
 
     public IMongoCollection<Notification> Notifications => _notifications;
 

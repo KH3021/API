@@ -26,4 +26,7 @@ public class User
 
     [BsonElement("createddate")]
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
+    [BsonElement("lastlogin")]
+    public DateTime LastLogin { get; set; } = DateTime.UtcNow;
 }

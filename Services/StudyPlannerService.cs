@@ -26,93 +26,127 @@ public class StudyPlannerService
 
         string prompt;
 
-        // 🔰 FIRST TIME USER (NO RESULTS)
+        // 🔰 NO RESULTS → BEGINNER PLAN
         if (results.Count == 0)
         {
             var skills = await _mongo.GetAllSkills();
             var skillNames = skills.Select(s => s.SkillName).ToList();
 
             prompt = $@"
-                        User: {user.FullName}
+User: {user.FullName}
 
-                        Skills Available:
-                        {string.Join(", ", skillNames)}
+Skills Available:
+{string.Join(", ", skillNames)}
 
-                        Task:
-                        Create a COMPLETE 7-day beginner study plan.
+Task:
+Create a COMPLETE 7-day beginner study plan.
 
-                        For EACH DAY include:
-                        - Topic
-                        - What to learn
-                        - Practice task
-                        - 2 YouTube links:
-                           • 1 English video
-                           • 1 Hindi video
-                        - 1 Website/article to read
+Each day must include:
+- Topic
+- What to learn
+- Practice task
+- 2 YouTube links (English + Hindi)
+- 1 Website
 
-                        Format strictly like:
+Format:
 
-                        Day 1:
-                        Topic:
-                        Learn:
-                        Practice:
-                        YouTube (English):
-                        YouTube (Hindi):
-                        Website:
+Day 1:
+Topic:
+Learn:
+Practice:
+YouTube (English):
+YouTube (Hindi):
+Website:
 
-                        Day 2:
-                        ...
+Day 2:
+...
 
-                        Make it simple and useful.
-                        ";
+Make it simple and beginner friendly.
+";
         }
         else
         {
-            // 🎯 USER HAS RESULTS → MASTERY PLAN
-            var grouped = results.GroupBy(r => r.SkillId);
+            // 🔥 STEP 1: ANALYZE ALL RESULTS
+            var grouped = results
+                .GroupBy(r => r.SkillId)
+                .Select(g => new
+                {
+                    SkillId = g.Key,
+                    Attempts = g.Count(),
+                    Avg = g.Average(x => x.Percentage)
+                })
+                .ToList();
+
             var analysis = new StringBuilder();
+            var weakSkills = new StringBuilder();
 
-            foreach (var group in grouped)
+            // 🔥 STEP 2: SORT (WEAKEST FIRST)
+            var sorted = grouped.OrderBy(x => x.Avg).ToList();
+
+            foreach (var g in sorted)
             {
-                var skill = await _mongo.GetSkillById(group.Key);
-                var avg = group.Average(r => r.Percentage);
+                var skill = await _mongo.GetSkillById(g.SkillId);
+                var skillName = skill?.SkillName ?? "Unknown";
 
-                analysis.AppendLine($"{skill?.SkillName}: {avg:F1}%");
+                string level;
+
+                if (g.Avg < 40)
+                    level = "Weak";
+                else if (g.Avg < 70)
+                    level = "Average";
+                else
+                    level = "Strong";
+
+                analysis.AppendLine(
+                    $"{skillName} | Attempts: {g.Attempts} | Avg: {g.Avg:F1}% | Level: {level}"
+                );
+
+                // 🔥 collect weak skills (top 3)
+                if (g.Avg < 70 && weakSkills.ToString().Split('\n').Length <= 3)
+                {
+                    weakSkills.AppendLine(skillName);
+                }
             }
 
+            // 🔥 STEP 3: STRONG PROMPT
             prompt = $@"
-                        User: {user.FullName}
+User: {user.FullName}
 
-                        Performance Analysis:
-                        {analysis}
+Full Performance Analysis:
+{analysis}
 
-                        Task:
-                        Create a 7-day ADVANCED mastery study plan.
+Important:
+Focus FIRST on weak and average skills:
+{weakSkills}
 
-                        For EACH DAY include:
-                        - Focus area (weak skill)
-                        - What to improve
-                        - Practice task
-                        - 2 YouTube links:
-                           • 1 English video
-                           • 1 Hindi video
-                        - 1 Website/article for deep learning
+Task:
+Create a 7-day ADVANCED study plan.
 
-                        Format strictly like:
+Rules:
+- Start from weakest skills
+- Gradually improve to stronger skills
+- Include daily improvement tasks
+- Include practice
+- Include:
+   • 1 YouTube English
+   • 1 YouTube Hindi
+   • 1 Website
 
-                        Day 1:
-                        Focus:
-                        Improve:
-                        Practice:
-                        YouTube (English):
-                        YouTube (Hindi):
-                        Website:
+STRICT FORMAT:
 
-                        Day 2:
-                        ...
+Day 1:
+Focus:
+Improve:
+Practice:
+YouTube (English):
+YouTube (Hindi):
+Website:
 
-                        Make it practical and improvement-focused.
-                        ";
+Day 2:
+...
+
+Make it practical and improvement-focused.
+";
         }
 
         var requestBody = new

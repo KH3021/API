@@ -59,11 +59,11 @@ public class UsersController : ControllerBase
     [HttpDelete("{userId}")]
     public async Task<IActionResult> DeleteUser(string userId)
     {
-        var success = await _mongo.DeleteUser(userId);
+        var success = await _mongo.DeleteUserFull(userId);
 
         if (!success)
             return NotFound("User not found");
 
-        return Ok("User deleted successfully");
+        return Ok("User and all related data deleted successfully 🔥");
     }
 }

@@ -281,4 +281,28 @@ public class MongoService
 
         await _notifications.ReplaceOneAsync(filter, notification);
     }
+
+    // =========================
+    // 🔥 FULL USER DELETE (CASCADE)
+    // =========================
+
+    public async Task<bool> DeleteUserFull(string userId)
+    {
+        // 1. DELETE USER
+        var userResult = await _users.DeleteOneAsync(u => u.UserId == userId);
+
+        // 2. DELETE RESULTS
+        await _results.DeleteManyAsync(r => r.UserId == userId);
+
+        // 3. DELETE USER SKILLS
+        await _userSkills.DeleteManyAsync(us => us.UserId == userId);
+
+        // 4. DELETE NOTIFICATIONS
+        await _notifications.DeleteManyAsync(n => n.UserId == userId);
+
+        // 5. DELETE USER STATS (GAMIFICATION)
+        await _userStats.DeleteManyAsync(s => s.UserId == userId);
+
+        return userResult.DeletedCount > 0;
+    }
 }
